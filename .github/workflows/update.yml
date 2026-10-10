@@ -26,28 +26,43 @@ jobs:
           while IFS= read -r url; do
             [[ -z "$url" || "$url" =~ ^# ]] && continue
             echo "Pobieranie: $url"
-            curl -sL "$url" >> combined_raw.txt || echo "Błąd pobierania"
+            curl -sL --retry 3 --connect-timeout 15 "$url" >> combined_raw.txt || echo "Błąd pobierania dla $url"
           done < sources.txt
 
-          echo "Czyszczenie i formatowanie domen (obsługa hosts, domains oraz adblock)..."
+          if [ ! -s combined_raw.txt ]; then
+            echo "BŁĄD: Pobrane listy są puste!"
+            exit 1
+          fi
+
+          echo "Zaawansowane czyszczenie i formatowanie domen..."
           cat combined_raw.txt | \
-            grep -v '^#' | \
-            grep -v '^!' | \
+            tr -d '\r' | \
+            cut -d'#' -f1 | \
+            cut -d'!' -f1 | \
+            sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
+            grep -v '^$' | \
             grep -v '^@@' | \
             grep -v '##' | \
+            sed -E 's/^(0\.0\.0\.0|127\.0\.0\.1|::1)[[:space:]]+//' | \
+            sed -E 's/\$.*$//' | \
+            sed -E 's/^\|\|?//' | \
+            sed -E 's/\^.*$//' | \
+            sed -E 's/^\*\.//' | \
             sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
-            sed 's/^0\.0\.0\.0[[:space:]]\+//' | \
-            sed 's/^127\.0\.0\.1[[:space:]]\+//' | \
-            sed 's/^||//' | \
-            sed 's/\^.*$//' | \
-            sed 's/\^[[:space:]]*$//' | \
-            grep -oE '[a-zA-Z0-9][-a-zA-Z0-9]*(\.[a-zA-Z0-9][-a-zA-Z0-9]*)+' | \
+            grep -E '^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$' | \
+            grep -ivE '^(localhost|local|broadcasthost|ip6-localhost|ip6-loopback|example\.com|example\.org|example\.net)$' | \
             tr '[:upper:]' '[:lower:]' | \
             sort -u > output/doh_combined.txt
 
           rm combined_raw.txt
-          echo "Gotowe! Liczba unikalnych domen:"
-          wc -l output/doh_combined.txt
+          
+          DOMAIN_COUNT=$(wc -l < output/doh_combined.txt)
+          echo "Gotowe! Liczba unikalnych domen: $DOMAIN_COUNT"
+          
+          if [ "$DOMAIN_COUNT" -lt 100 ]; then
+            echo "BŁĄD: Wygenerowana lista ma podejrzanie mało wpisów ($DOMAIN_COUNT). Przerywam."
+            exit 1
+          fi
 
       - name: Zapisz zmiany w repozytorium
         run: |
