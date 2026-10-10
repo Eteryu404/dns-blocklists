@@ -1,0 +1,48 @@
+name: Build DNS Blocklist
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # Codziennie o 3:00 w nocy
+  workflow_dispatch:     # Umożliwia też ręczne odpalenie w każdej chwili
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repozytorium
+        uses: actions/checkout@v4
+
+      - name: Pobieranie i agregacja list
+        run: |
+          mkdir -p output
+          > combined_raw.txt
+          
+          while IFS= read -r url; do
+            [[ -z "$url" || "$url" =~ ^# ]] && continue
+            echo "Pobieranie: $url"
+            curl -sL "$url" >> combined_raw.txt || echo "Błąd pobierania"
+          done < sources.txt
+
+          echo "Czyszczenie i formatowanie domen..."
+          cat combined_raw.txt | \
+            grep -v '^#' | \
+            grep -v '^!' | \
+            awk '{print $NF}' | \
+            tr '[:upper:]' '[:lower:]' | \
+            sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
+            grep -E '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$' | \
+            sort -u > output/doh_combined.txt
+
+          rm combined_raw.txt
+          echo "Gotowe! Liczba unikalnych domen:"
+          wc -l output/doh_combined.txt
+
+      - name: Zapisz zmiany w repozytorium
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/doh_combined.txt
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update combined blocklist [skip ci]" && git push)
