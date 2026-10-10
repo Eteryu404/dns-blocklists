@@ -41396,7 +41396,6 @@ analytics.ubs.com
 analytics.uca.cloud.unity3d.com
 analytics.uhhospitals.org
 analytics.um5.ee
-analytics.umami.is
 analytics.umetrip.com
 analytics.umetrip.com.c.vedcdnlb.com
 analytics.unand.ac.id
@@ -90718,7 +90717,6 @@ cloud.trilogyproducts.co.nz
 cloud.trilogyproducts.co.uk
 cloud.trilogyproducts.com
 cloud.trilogyproducts.com.au
-cloud.umami.is
 cloud.villaagarna.se
 cloud.webtrack.online
 cloud.white-monster.xyz
@@ -159558,7 +159556,6 @@ gateway.start.moniti.app
 gateway.tf4srv.com
 gateway.ttpsdk.info
 gateway.ukveincare.com
-gateway.umami.is
 gateway.vaatzorgkliniek.nl
 gateway.venecenter.dk
 gateway.wearetopple.com
@@ -428181,7 +428178,6 @@ umami.flixer.su
 umami.implisense.com
 umami.intervals.icu
 umami.ipl.com
-umami.is
 umami.keengames.com
 umami.mmcwilliams.com
 umami.mrmag.ru
