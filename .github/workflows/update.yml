@@ -5,7 +5,8 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 3 * * *'
+    # Złoty środek: Środa i Niedziela o 3:00 UTC
+    - cron: '0 3 * * 0,3'
   workflow_dispatch:
 
 jobs:
@@ -23,13 +24,22 @@ jobs:
           mkdir -p output
           > combined_raw.txt
           
-          # Upewnij się, że allowlist.txt istnieje, aby skrypt się nie wyłożył
           touch allowlist.txt
 
           while IFS= read -r url; do
             [[ -z "$url" || "$url" =~ ^# ]] && continue
             echo "Pobieranie: $url"
-            curl -sL --retry 3 --connect-timeout 15 "$url" >> combined_raw.txt || echo "Błąd pobierania dla $url"
+            
+            # Pobierz do pliku tymczasowego i sprawdź status HTTP 200
+            HTTP_STATUS=$(curl -sL --retry 2 --connect-timeout 10 -w "%{http_code}" -o temp_list.txt "$url" || echo "000")
+            
+            if [ "$HTTP_STATUS" -eq 200 ] && [ -s temp_list.txt ]; then
+              cat temp_list.txt >> combined_raw.txt
+              echo "" >> combined_raw.txt
+            else
+              echo "Ostrzeżenie: Błąd pobierania ($HTTP_STATUS) dla $url - pomijam."
+            fi
+            rm -f temp_list.txt
           done < sources.txt
 
           if [ ! -s combined_raw.txt ]; then
@@ -58,7 +68,6 @@ jobs:
             sort -u > combined_parsed.txt
 
           echo "Aplikowanie białej listy (allowlist.txt)..."
-          # Przygotuj wyczyszczoną allowlistę (usuń komentarze i puste linie)
           grep -v -E '^[[:space:]]*$' allowlist.txt | grep -v '^[[:space:]]*#' | tr -d '\r' | tr '[:upper:]' '[:lower:]' > clean_allowlist.txt || true
 
           if [ -s clean_allowlist.txt ]; then
