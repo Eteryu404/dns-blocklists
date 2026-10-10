@@ -3,3 +3,4 @@ https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tif.mini.tx
 https://v.firebog.net/hosts/AdguardDNS.txt
 https://v.firebog.net/hosts/Easyprivacy.txt
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/popupads.txt
+https://raw.githubusercontent.com/KADhosts/KADhosts/master/KADhosts.txt
