@@ -1,2 +1,1 @@
-https://hagezi-mirror.dnsbunker.org/domains/pro.txt
-https://hagezi-mirror.dnsbunker.org/domains/tif.txt
+https://raw.githubusercontent.com/lassekongo83/Frellwits-filter-lists/master/Frellwits-Swedish-Hosts-File.txt
