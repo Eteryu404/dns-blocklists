@@ -1,2 +1,2 @@
-https://small.oisd.nl
-https://hagezi-mirror.dnsbunker.org/adblock/tif.mini.txt
+https://hagezi-mirror.dnsbunker.org/adblock/pro.txt
+https://hagezi-mirror.dnsbunker.org/adblock/tif.txt
