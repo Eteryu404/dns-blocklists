@@ -1,2 +1,2 @@
-https://raw.githubusercontent.com/hagezi/dns-blocklists/main/multi/pro.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/pro.txt
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/tif.txt
