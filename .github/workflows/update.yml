@@ -29,15 +29,18 @@ jobs:
             curl -sL "$url" >> combined_raw.txt || echo "Błąd pobierania"
           done < sources.txt
 
-          echo "Czyszczenie i formatowanie domen..."
+          echo "Czyszczenie i formatowanie domen (obsługa hosts, domains oraz adblock)..."
           cat combined_raw.txt | \
             grep -v '^#' | \
             grep -v '^!' | \
+            grep -v '^@@' | \
+            grep -v '##' | \
             sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
             sed 's/^0\.0\.0\.0[[:space:]]\+//' | \
             sed 's/^127\.0\.0\.1[[:space:]]\+//' | \
             sed 's/^||//' | \
-            sed 's/\^$//' | \
+            sed 's/\^.*$//' | \
+            sed 's/\^[[:space:]]*$//' | \
             grep -oE '[a-zA-Z0-9][-a-zA-Z0-9]*(\.[a-zA-Z0-9][-a-zA-Z0-9]*)+' | \
             tr '[:upper:]' '[:lower:]' | \
             sort -u > output/doh_combined.txt
