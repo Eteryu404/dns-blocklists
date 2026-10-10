@@ -23,6 +23,9 @@ jobs:
           mkdir -p output
           > combined_raw.txt
           
+          # Upewnij się, że allowlist.txt istnieje, aby skrypt się nie wyłożył
+          touch allowlist.txt
+
           while IFS= read -r url; do
             [[ -z "$url" || "$url" =~ ^# ]] && continue
             echo "Pobieranie: $url"
@@ -52,12 +55,22 @@ jobs:
             grep -E '^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$' | \
             grep -ivE '^(localhost|local|broadcasthost|ip6-localhost|ip6-loopback|example\.com|example\.org|example\.net)$' | \
             tr '[:upper:]' '[:lower:]' | \
-            sort -u > output/doh_combined.txt
+            sort -u > combined_parsed.txt
 
-          rm combined_raw.txt
+          echo "Aplikowanie białej listy (allowlist.txt)..."
+          # Przygotuj wyczyszczoną allowlistę (usuń komentarze i puste linie)
+          grep -v -E '^[[:space:]]*$' allowlist.txt | grep -v '^[[:space:]]*#' | tr -d '\r' | tr '[:upper:]' '[:lower:]' > clean_allowlist.txt || true
+
+          if [ -s clean_allowlist.txt ]; then
+            grep -vFf clean_allowlist.txt combined_parsed.txt > output/doh_combined.txt || cp combined_parsed.txt output/doh_combined.txt
+          else
+            cp combined_parsed.txt output/doh_combined.txt
+          fi
+
+          rm -f combined_raw.txt combined_parsed.txt clean_allowlist.txt
           
           DOMAIN_COUNT=$(wc -l < output/doh_combined.txt)
-          echo "Gotowe! Liczba unikalnych domen: $DOMAIN_COUNT"
+          echo "Gotowe! Liczba unikalnych domen po uwzględnieniu allowlisty: $DOMAIN_COUNT"
           
           if [ "$DOMAIN_COUNT" -lt 100 ]; then
             echo "BŁĄD: Wygenerowana lista ma podejrzanie mało wpisów ($DOMAIN_COUNT). Przerywam."
