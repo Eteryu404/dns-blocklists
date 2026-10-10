@@ -1,0 +1,6 @@
+# Umami Analytics & Cloud
+umami.is
+cloud.umami.is
+analytics.umami.is
+gateway.umami.is
+api.umami.is
