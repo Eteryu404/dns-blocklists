@@ -12,6 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
 
@@ -23,16 +24,27 @@ jobs:
         run: |
           mkdir -p output
           > combined_raw.txt
-          
-          touch allowlist.txt
+
+          # Inicjalizacja allowlisty z nagłówkiem, jeśli nie istnieje
+          if [ ! -f allowlist.txt ]; then
+            echo "# Dodaj domeny do wyjątków (jedna na linię)" > allowlist.txt
+          fi
+
+          # Sprawdź, czy plik źródeł istnieje
+          if [ ! -f sources.txt ]; then
+            echo "BŁĄD: Brak pliku sources.txt"
+            exit 1
+          fi
 
           while IFS= read -r url; do
             [[ -z "$url" || "$url" =~ ^# ]] && continue
             echo "Pobieranie: $url"
-            
-            HTTP_STATUS=$(curl -sL --retry 2 --connect-timeout 10 -w "%{http_code}" -o temp_list.txt "$url" || echo "000")
-            
-            if [ "$HTTP_STATUS" -eq 200 ] && [ -s temp_list.txt ]; then
+
+            HTTP_STATUS=$(curl -sL --retry 2 --connect-timeout 10 \
+              -w "%{http_code}" -o temp_list.txt "$url" 2>/dev/null)
+            [ -z "$HTTP_STATUS" ] && HTTP_STATUS="000"
+
+            if [ "$HTTP_STATUS" = "200" ] && [ -s temp_list.txt ]; then
               cat temp_list.txt >> combined_raw.txt
               echo "" >> combined_raw.txt
             else
@@ -54,7 +66,9 @@ jobs:
           allowlist_file = "allowlist.txt"
           output_file = "output/doh_combined.txt"
 
-          # 1. Wczytaj i wyczyść allowlistę
+          MAX_DOMAIN_LENGTH = 253
+
+          # 1. Wczytaj allowlistę
           allowlist = set()
           try:
               with open(allowlist_file, "r", encoding="utf-8", errors="ignore") as f:
@@ -65,14 +79,30 @@ jobs:
           except FileNotFoundError:
               pass
 
+          def is_allowlisted(domain, allowlist):
+              """Sprawdza, czy domena lub któryś z jej rodziców jest na allowliście."""
+              if domain in allowlist:
+                  return True
+              parts = domain.split('.')
+              for i in range(1, len(parts) - 1):
+                  parent = '.'.join(parts[i:])
+                  if parent in allowlist:
+                      return True
+              return False
+
           # 2. Parsuj surowe domeny z list
           domains = set()
-          domain_pattern = re.compile(r'^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$')
-          ignored = {'localhost', 'local', 'broadcasthost', 'ip6-localhost', 'ip6-loopback', 'example.com', 'example.org', 'example.net'}
+          domain_pattern = re.compile(
+              r'^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?'
+              r'(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$'
+          )
+          ignored = {
+              'localhost', 'local', 'broadcasthost', 'ip6-localhost',
+              'ip6-loopback', 'example.com', 'example.org', 'example.net'
+          }
 
           with open(raw_file, "r", encoding="utf-8", errors="ignore") as f:
               for line in f:
-                  # Usuń komentarze, białe znaki, formatowania hosts / adblock
                   line = line.split('#')[0].split('!')[0].strip().lower()
                   line = re.sub(r'^(0\.0\.0\.0|127\.0\.0\.1|::1)\s+', '', line)
                   line = re.sub(r'\$.*$', '', line)
@@ -83,14 +113,19 @@ jobs:
 
                   if not line or line in ignored:
                       continue
-                  
-                  # Sprawdź poprawność domeny
+
+                  if len(line) > MAX_DOMAIN_LENGTH:
+                      continue
+
                   if domain_pattern.match(line):
-                      if line not in allowlist:
+                      if not is_allowlisted(line, allowlist):
                           domains.add(line)
 
-          # 3. Aglomeracja subdomen (usuwanie zbędnych dzieci, jeśli rodzic jest już blokowany)
-          # Sortujemy domeny od najkrótszych (rodzice) do najdłuższych (poddomeny)
+          raw_count = len(domains)
+          print(f"Domen po wstępnym czyszczeniu: {raw_count}")
+
+          # 3. Aglomeracja subdomen
+          # Sortujemy od najkrótszych, żeby rodzice trafiali do zbioru przed dziećmi
           sorted_domains = sorted(domains, key=len)
           optimized_domains = set()
           seen_parents = set()
@@ -98,37 +133,41 @@ jobs:
           for d in sorted_domains:
               parts = d.split('.')
               is_redundant = False
-              # Sprawdź czy jakikolwiek rodzic (np. example.com dla a.b.example.com) jest już zablokowany
-              for i in range(1, len(parts)):
+              # Sprawdzaj tylko rodziców, nie TLD (range kończy się przed ostatnim elementem)
+              for i in range(1, len(parts) - 1):
                   parent = '.'.join(parts[i:])
                   if parent in seen_parents:
                       is_redundant = True
                       break
-              
+
               if not is_redundant:
                   optimized_domains.add(d)
                   seen_parents.add(d)
+
+          optimized_count = len(optimized_domains)
+          removed_count = raw_count - optimized_count
+          print(f"Po aglomeracji: {optimized_count} (usunięto {removed_count} redundantnych)")
 
           # 4. Zapisz wynik
           with open(output_file, "w", encoding="utf-8") as f:
               for d in sorted(optimized_domains):
                   f.write(d + "\n")
 
-          print(f"Zoptymalizowano! Liczba unikalnych domen po aglomeracji: {len(optimized_domains)}")
+          print(f"Zapisano do {output_file}")
           EOF
 
-          # Sprawdź czy plik wynikowy istnieje i nie jest pusty
+          # Walidacja pliku wynikowego
           if [ ! -s output/doh_combined.txt ]; then
             echo "BŁĄD: Wygenerowany plik wynikowy jest pusty!"
             exit 1
           fi
 
           rm -f combined_raw.txt
-          
+
           DOMAIN_COUNT=$(wc -l < output/doh_combined.txt)
           echo "Gotowe! Końcowa liczba domen: $DOMAIN_COUNT"
-          
-          if [ "$DOMAIN_COUNT" -lt 100 ]; then
+
+          if [ "$DOMAIN_COUNT" -lt 10000 ]; then
             echo "BŁĄD: Wygenerowana lista ma podejrzanie mało wpisów ($DOMAIN_COUNT). Przerywam."
             exit 1
           fi
@@ -137,5 +176,5 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add output/doh_combined.txt
+          git add output/doh_combined.txt allowlist.txt
           git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update and optimize blocklist [skip ci]" && git push)
