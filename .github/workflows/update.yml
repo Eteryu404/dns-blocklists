@@ -33,10 +33,13 @@ jobs:
           cat combined_raw.txt | \
             grep -v '^#' | \
             grep -v '^!' | \
-            awk '{print $NF}' | \
-            tr '[:upper:]' '[:lower:]' | \
             sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
-            grep -E '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$' | \
+            sed 's/^0\.0\.0\.0[[:space:]]\+//' | \
+            sed 's/^127\.0\.0\.1[[:space:]]\+//' | \
+            sed 's/^||//' | \
+            sed 's/\^$//' | \
+            grep -oE '[a-zA-Z0-9][-a-zA-Z0-9]*(\.[a-zA-Z0-9][-a-zA-Z0-9]*)+' | \
+            tr '[:upper:]' '[:lower:]' | \
             sort -u > output/doh_combined.txt
 
           rm combined_raw.txt
