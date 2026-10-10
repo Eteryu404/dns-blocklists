@@ -30,7 +30,6 @@ jobs:
             [[ -z "$url" || "$url" =~ ^# ]] && continue
             echo "Pobieranie: $url"
             
-            # Pobierz do pliku tymczasowego i sprawdź status HTTP 200
             HTTP_STATUS=$(curl -sL --retry 2 --connect-timeout 10 -w "%{http_code}" -o temp_list.txt "$url" || echo "000")
             
             if [ "$HTTP_STATUS" -eq 200 ] && [ -s temp_list.txt ]; then
@@ -47,39 +46,87 @@ jobs:
             exit 1
           fi
 
-          echo "Zaawansowane czyszczenie i formatowanie domen..."
-          cat combined_raw.txt | \
-            tr -d '\r' | \
-            cut -d'#' -f1 | \
-            cut -d'!' -f1 | \
-            sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
-            grep -v '^$' | \
-            grep -v '^@@' | \
-            grep -v '##' | \
-            sed -E 's/^(0\.0\.0\.0|127\.0\.0\.1|::1)[[:space:]]+//' | \
-            sed -E 's/\$.*$//' | \
-            sed -E 's/^\|\|?//' | \
-            sed -E 's/\^.*$//' | \
-            sed -E 's/^\*\.//' | \
-            sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
-            grep -E '^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$' | \
-            grep -ivE '^(localhost|local|broadcasthost|ip6-localhost|ip6-loopback|example\.com|example\.org|example\.net)$' | \
-            tr '[:upper:]' '[:lower:]' | \
-            sort -u > combined_parsed.txt
+          echo "Czyszczenie, formatowanie i aglomeracja subdomen przez Python..."
+          python3 - << 'EOF'
+          import re
 
-          echo "Aplikowanie białej listy (allowlist.txt)..."
-          grep -v -E '^[[:space:]]*$' allowlist.txt | grep -v '^[[:space:]]*#' | tr -d '\r' | tr '[:upper:]' '[:lower:]' > clean_allowlist.txt || true
+          raw_file = "combined_raw.txt"
+          allowlist_file = "allowlist.txt"
+          output_file = "output/doh_combined.txt"
 
-          if [ -s clean_allowlist.txt ]; then
-            grep -vFf clean_allowlist.txt combined_parsed.txt > output/doh_combined.txt || cp combined_parsed.txt output/doh_combined.txt
-          else
-            cp combined_parsed.txt output/doh_combined.txt
+          # 1. Wczytaj i wyczyść allowlistę
+          allowlist = set()
+          try:
+              with open(allowlist_file, "r", encoding="utf-8", errors="ignore") as f:
+                  for line in f:
+                      line = line.strip().lower()
+                      if line and not line.startswith("#"):
+                          allowlist.add(line)
+          except FileNotFoundError:
+              pass
+
+          # 2. Parsuj surowe domeny z list
+          domains = set()
+          domain_pattern = re.compile(r'^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$')
+          ignored = {'localhost', 'local', 'broadcasthost', 'ip6-localhost', 'ip6-loopback', 'example.com', 'example.org', 'example.net'}
+
+          with open(raw_file, "r", encoding="utf-8", errors="ignore") as f:
+              for line in f:
+                  # Usuń komentarze, białe znaki, formatowania hosts / adblock
+                  line = line.split('#')[0].split('!')[0].strip().lower()
+                  line = re.sub(r'^(0\.0\.0\.0|127\.0\.0\.1|::1)\s+', '', line)
+                  line = re.sub(r'\$.*$', '', line)
+                  line = re.sub(r'^\|\|?', '', line)
+                  line = re.sub(r'\^.*$', '', line)
+                  line = re.sub(r'^\*\.', '', line)
+                  line = line.strip()
+
+                  if not line or line in ignored:
+                      continue
+                  
+                  # Sprawdź poprawność domeny
+                  if domain_pattern.match(line):
+                      if line not in allowlist:
+                          domains.add(line)
+
+          # 3. Aglomeracja subdomen (usuwanie zbędnych dzieci, jeśli rodzic jest już blokowany)
+          # Sortujemy domeny od najkrótszych (rodzice) do najdłuższych (poddomeny)
+          sorted_domains = sorted(domains, key=len)
+          optimized_domains = set()
+          seen_parents = set()
+
+          for d in sorted_domains:
+              parts = d.split('.')
+              is_redundant = False
+              # Sprawdź czy jakikolwiek rodzic (np. example.com dla a.b.example.com) jest już zablokowany
+              for i in range(1, len(parts)):
+                  parent = '.'.join(parts[i:])
+                  if parent in seen_parents:
+                      is_redundant = True
+                      break
+              
+              if not is_redundant:
+                  optimized_domains.add(d)
+                  seen_parents.add(d)
+
+          # 4. Zapisz wynik
+          with open(output_file, "w", encoding="utf-8") as f:
+              for d in sorted(optimized_domains):
+                  f.write(d + "\n")
+
+          print(f"Zoptymalizowano! Liczba unikalnych domen po aglomeracji: {len(optimized_domains)}")
+          EOF
+
+          # Sprawdź czy plik wynikowy istnieje i nie jest pusty
+          if [ ! -s output/doh_combined.txt ]; then
+            echo "BŁĄD: Wygenerowany plik wynikowy jest pusty!"
+            exit 1
           fi
 
-          rm -f combined_raw.txt combined_parsed.txt clean_allowlist.txt
+          rm -f combined_raw.txt
           
           DOMAIN_COUNT=$(wc -l < output/doh_combined.txt)
-          echo "Gotowe! Liczba unikalnych domen po uwzględnieniu allowlisty: $DOMAIN_COUNT"
+          echo "Gotowe! Końcowa liczba domen: $DOMAIN_COUNT"
           
           if [ "$DOMAIN_COUNT" -lt 100 ]; then
             echo "BŁĄD: Wygenerowana lista ma podejrzanie mało wpisów ($DOMAIN_COUNT). Przerywam."
@@ -91,4 +138,4 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add output/doh_combined.txt
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update combined blocklist [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update and optimize blocklist [skip ci]" && git push)
