@@ -1,9 +1,11 @@
 https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.txt
-https://raw.githubusercontent.com/lassekongo83/Frellwits-filter-lists/master/Frellwits-Swedish-Hosts-File.txt
+https://raw.githubusercontent.com/FiltersHeroes/KADhosts/master/KADhosts.txt
+https://raw.githubusercontent.com/PolishAnnoyanceFilters/PolishAntiAdblockFilters/master/hosts.txt
+https://raw.githubusercontent.com/olegwukr/polish-privacy-filters/master/anti-ad-white-list/hosts.txt
 https://v.firebog.net/hosts/AdguardDNS.txt
-https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/popupads.txt
 https://adguardteam.github.io/AdguardFilters/MobileFilter/sections/adservers.txt
 https://v.firebog.net/hosts/Easyprivacy.txt
+https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/popupads.txt
 https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/native.amazon.txt
 https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/native.apple.txt
 https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/native.huawei.txt
