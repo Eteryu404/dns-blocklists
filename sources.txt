@@ -1,7 +1,7 @@
 https://small.oisd.nl
-https://raw.githubusercontent.com/badmojc/1Hosts/master/Lite/adblock.txt
+https://raw.githubusercontent.com/badmojr/1Hosts/master/Lite/adblock.txt
 https://v.firebog.net/hosts/AdguardDNS.txt
 https://v.firebog.net/hosts/Easyprivacy.txt
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/popupads.txt
 https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tif.mini.txt
-https://raw.githubusercontent.com/KADhosts/KADhosts/master/KADhosts.txt
+https://raw.githubusercontent.com/FiltersHeroes/KADhosts/master/KADhosts.txt
