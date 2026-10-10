@@ -1,6 +1,2 @@
 https://small.oisd.nl
-https://v.firebog.net/hosts/AdguardDNS.txt
-https://raw.githubusercontent.com/AdguardTeam/AdguardFilters/refs/heads/master/MobileFilter/sections/adservers.txt
-https://v.firebog.net/hosts/Easyprivacy.txt
-https://urlhaus.abuse.ch/downloads/hostfile
 https://hagezi-mirror.dnsbunker.org/adblock/tif.mini.txt
