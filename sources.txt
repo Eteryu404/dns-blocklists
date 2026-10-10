@@ -1,2 +1,2 @@
-https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/multi/pro.txt
-https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/hosts/tif.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/multi/pro.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/tif.txt
