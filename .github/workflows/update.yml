@@ -82,7 +82,7 @@ jobs:
           # 1. Wczytaj allowlistę
           allowlist = set()
           try:
-              with open(allowlist_file, "r", encoding="utf-8", errors="ignore") as f:
+              with open(allowlist_file, "r", encoding="utf-8-sig", errors="ignore") as f:
                   for line in f:
                       line = line.strip().lower()
                       if line and not line.startswith("#"):
@@ -112,7 +112,7 @@ jobs:
               'ip6-loopback', 'example.com', 'example.org', 'example.net'
           }
 
-          with open(raw_file, "r", encoding="utf-8", errors="ignore") as f:
+          with open(raw_file, "r", encoding="utf-8-sig", errors="ignore") as f:
               for line in f:
                   line = line.split('#')[0].split('!')[0].strip().lower()
                   line = re.sub(r'^(0\.0\.0\.0|127\.0\.0\.1|::1)\s+', '', line)
