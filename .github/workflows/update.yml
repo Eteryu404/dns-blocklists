@@ -142,7 +142,6 @@ jobs:
           print(f"Po deduplikacji: {len(domains)}")
 
           raw_count = len(domains)
-          print(f"Domen po wstępnym czyszczeniu: {raw_count}")
 
           # 3. Aglomeracja subdomen
           # Sortujemy od najkrótszych, żeby rodzice trafiali do zbioru przed dziećmi
