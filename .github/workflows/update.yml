@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout repozytorium
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Pobieranie i agregacja list
         run: |
