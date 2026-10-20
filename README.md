@@ -21,4 +21,4 @@ Pipeline na **GitHub Actions** cyklicznie pobiera źródła, czyści reguły z n
 Gotowa lista do wdrożenia na poziomie resolvera (np. Cloudflare Worker `doh-worker`, Pi-hole, AdGuard Home):
 
 * **Plik w repo:** `output/doh_combined.txt`
-* **Raw URL:** `https://raw.githubusercontent.com/Eteryu404/dns-blocklists/refs/heads/main/output/doh_combined.txt`
+* **Raw URL:** `https://raw.githubusercontent.com/realeteryu/dns-blocklists/refs/heads/main/output/doh_combined.txt`
