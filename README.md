@@ -12,7 +12,7 @@ Pipeline na **GitHub Actions** cyklicznie pobiera źródła, czyści reguły z n
 * **Sanityzacja:** Odrzuca komentarze, reguły uBlocka, IP (`0.0.0.0`) oraz niepoprawne domeny.
 * **Wyjątki:** Przepuszcza domeny zdefiniowane w `allowlist.txt`.
 * **Deduplikacja (Python):** Automatycznie usuwa subdomeny, jeśli blokowana jest cała domena nadrzędna (np. usuwa `sub.bad.com`, gdy istnieje `bad.com`).
-* **Deploy:** Generuje zoptymalizowany plik i automatycznie commituje zmiany.
+* **Deploy:** Generuje zoptymalizowany plik, automatycznie commituje zmiany do repozytorium oraz **wysyła plik bezpośrednio do Cloudflare KV** (zapewniając błyskawiczny dostęp dla `doh-worker`).
 
 ---
 
